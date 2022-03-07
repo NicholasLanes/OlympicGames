@@ -7,7 +7,18 @@
     <div class="col-sm-6 col-sm-offset-3">
         <ul class="list-group text-center" style="justify-content:center; text-align:center;">
             <li class="list-group-item">
-                <img src="~/lib/images/@Model.Team.LogoImage" alt="" />
+                <form asp-action="Add" method="post">
+                    <a asp-action="Index" class="btn btn-primary" asp-route-activeGame="@Model.ActiveGame" asp-route-activeSport="@Model.ActiveSport">
+                        Return to Home Page
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        Add to Favorites
+                    </button>
+                    <input type="hidden" asp-for="Team.TeamId" />
+                </form>
+            </li>
+            <li class="list-group-item">
+                <img src="~/lib/images/@Model.Team.LogoImage" alt="" style="max-width:100px;" />
                 <h3>@Model.Team.Name</h3>
             </li>
             <li class="list-group-item">

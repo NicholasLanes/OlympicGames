@@ -25,7 +25,18 @@ namespace OlympicGames
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllersWithViews();
+            //Memorycache and addsession must be called before addcontrollerswithvies
+            services.AddMemoryCache();
+
+            //Adding session state and changing the default session state settings
+            services.AddSession(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromSeconds(60*10);//change timeout to 10 min default is 20 min
+                options.Cookie.HttpOnly = false;//default is true
+                options.Cookie.IsEssential = true;//default is false
+            });
+               
+            services.AddControllersWithViews().AddNewtonsoftJson();
             services.AddDbContext<TeamContext>(options => options.UseSqlServer(Configuration.GetConnectionString("TeamContext")));
 
         }
@@ -49,6 +60,9 @@ namespace OlympicGames
             app.UseRouting();
 
             app.UseAuthorization();
+
+            //UseSession must be called before UseEndpoints
+            app.UseSession();
 
             app.UseEndpoints(endpoints =>
             {

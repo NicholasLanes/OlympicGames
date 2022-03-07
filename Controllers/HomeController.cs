@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
@@ -22,6 +23,31 @@ namespace OlympicGames.Controllers
 
         public ViewResult Index(string activeGame = "all", string activeSport = "all")
         {
+            var session = new TeamSession(HttpContext.Session);
+            session.SetActiveGame(activeGame);
+            session.SetActiveSport(activeSport);
+
+            //If no count in session, get cookie and restore favorite teams in session
+            int? count = session.GetMyTeamCount();
+            if (count == null)
+            {
+                var cookies = new TeamCookies(Request.Cookies);
+                string[] ids = cookies.GetMyTeamIds();
+
+                List<Team> myteams = new List<Team>();
+                if (ids.Length > 0)
+                {
+                    myteams = context.Teams.Include(t=>t.Game)
+                        .Include(t=>t.Sport)
+                        .Where(t=>ids.Contains(t.TeamId)).ToList();
+                }
+                else
+                {
+                    session.SetMyTeams(myteams);
+
+                }
+                session.SetMyTeams(myteams);
+            }
 
             var model = new TeamListViewModel
             {
@@ -45,6 +71,7 @@ namespace OlympicGames.Controllers
         }
 
 
+
         [HttpPost]
         public RedirectToActionResult Details(TeamViewModel model)
         {
@@ -55,16 +82,41 @@ namespace OlympicGames.Controllers
         [HttpGet]
         public ViewResult Details(string id)
         {
+            var session = new TeamSession(HttpContext.Session);
             var model = new TeamViewModel
             {
                 Team = context.Teams
                 .Include(t => t.Game)
                 .Include(t => t.Sport)
                 .FirstOrDefault(t => t.TeamId == id),
-                ActiveGame = TempData.Peek("ActiveGame").ToString() ?? "all",
-                ActiveSport = TempData.Peek("ActiveSport").ToString() ?? "all"
+                ActiveGame = session.GetActiveGame(),
+                ActiveSport = session.GetActiveSport(),
             };
             return View(model);
+        }
+        [HttpPost]
+        public RedirectToActionResult Add(TeamViewModel model)
+        {
+            model.Team = context.Teams
+                .Include(t=>t.Game)
+                .Include(t=>t.Sport)
+                .Where(t=>t.TeamId==model.Team.TeamId)
+                .FirstOrDefault();
+
+            var session = new TeamSession(HttpContext.Session);
+            var teams = session.GetMyTeams();
+            teams.Add(model.Team);
+            session.SetMyTeams(teams);
+
+            var cookies = new TeamCookies(Response.Cookies);
+            cookies.SetMyTeamIds(teams);
+
+            TempData["message"] = $"{model.Team.Name} added to your favorites";
+            return RedirectToAction("Index", new
+            {
+                ActiveGame = session.GetActiveGame(),
+                ActiveSport = session.GetActiveSport(),
+            });
         }
     }
 }

@@ -11,6 +11,24 @@
     <div class="container">
         <header class="justify-content-center">
             <h1>Olympic Games</h1>
+            <!--Show any messages present in TempData-->
+            @if (TempData["message"] != null)
+            {
+                <h4 class="bg-success p-2">@TempData["message"]</h4>
+            }
+            <!--Show link to favorites page unless on favorites page-->
+            @if (!ViewContext.View.Path.Contains("Favorites"))
+            {
+                var session = new TeamSession(Context.Session);
+                <h5 class="bg-info p-2">
+                    <a asp-controller="Favorites"
+                    class="text-white">My Favorite Teams</a>
+                    <!--Display the number of favorite teams in a badge-->
+                    <span class="badge badge-light">
+                        @(session.GetMyTeamCount())
+                    </span>
+                </h5>
+            }
         </header>
         <main>
             @RenderBody()
